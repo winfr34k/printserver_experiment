@@ -7,7 +7,7 @@ REPO_ANSIBLE="deb [trusted=yes] http://ppa.launchpad.net/ansible/ansible/ubuntu 
 DIR_SOURCES_LIST="/etc/apt/sources.list.d"
 FILE_ANSIBLE_SOURCES="${DIR_SOURCES_LIST}/ansible.list"
 DIR_SSH_KEYS="${HOME}/.ssh"
-NAME_SSH_KEY="ansible@keppler"
+NAME_SSH_KEY="ansible@example"
 PATH_SSH_KEY_PAIR="${DIR_SSH_KEYS}/${NAME_SSH_KEY}"
 URL_KEYSERVER="keyserver.ubuntu.com"
 KEY_ANSIBLE="93C4A3FD7BB9C367"
