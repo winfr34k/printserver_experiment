@@ -1,0 +1,22 @@
+---
+- name: verifying connection to the domain controller works
+  shell: wbinfo --ping-dc | grep -qe 'connection to.*succeeded'
+  changed_when: false
+
+- name: verifying all expected users are listed
+  shell: wbinfo -u | tr '\n', ',' | grep -q 'administrator,dns-dc,krbtgt,guest,'
+  changed_when: false
+
+- name: verifying the fileserver sees the Administrator account
+  shell: getent passwd Administrator | grep -q ':Administrator:/home/{{ workgroup }}/administrator:/bin/bash'
+  changed_when: false
+
+- name: verifying the fileserver sees both "Domain Users" and "Domain Admins"
+  shell: |
+    getent group 'Domain Users' | grep -q 'domain users:x:'
+    getent group 'Domain Admins' | grep -q 'domain admins:x:'
+  changed_when: false
+
+- name: summary
+  debug:
+    msg: "Everything looks OK."

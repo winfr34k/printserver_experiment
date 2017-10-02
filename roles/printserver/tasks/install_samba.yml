@@ -1,0 +1,89 @@
+---
+- name: check if samba is already provisioned
+  stat:
+    path: /.printserver-provisioned
+  register: provision_file
+
+- name: provision samba server
+  when: not provision_file.stat.exists
+  block:
+    - name: install samba
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - ntp
+        - samba
+        - winbind
+        - libnss-winbind
+        - smbclient
+
+    - name: stopping samba services
+      service:
+        name: "{{ item }}"
+        state: stopped
+      with_items:
+        - winbind
+        - smbd
+        - nmbd
+
+    - name: find config file path
+      shell: smbd -b | grep 'CONFIGFILE' | cut -d ' ' -f5
+      register: config_file_query
+      changed_when: false
+
+    - name: remove existing samba config file
+      file:
+        path: "{{ config_file_query.stdout }}"
+        state: absent
+      register: is_config_file_removed
+
+    - name: find out where the samba databases are located at
+      shell: smbd -b | egrep 'LOCKDIR|STATEDIR|CACHEDIR|PRIVATE_DIR' | awk '{print $2}' | while read DIR; do find "${DIR}" -type f -iname '*.[tl]db'; done < /dev/stdin
+      register: samba_databases
+      changed_when: false
+
+    - name: remove all existing samba databases
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items: "{{ samba_databases.stdout_lines }}"
+      when: is_config_file_removed.changed
+
+    - name: configure the KDC user space tools
+      template:
+        src: krb5.conf.j2
+        dest: /etc/krb5.conf
+
+    - name: install KDC user space tools
+      apt:
+        name: krb5-user
+        state: latest
+
+    - name: deploy default samba configuration
+      template:
+        src: smb.conf.j2
+        dest: /etc/samba/smb.conf
+
+    - name: join the domain
+      shell: echo "{{ admin_password }}" | net ads join -U Administrator
+
+    - name: enable windbind in nsswitch
+      shell: |
+        sed -i "s/passwd:         compat/passwd:         compat winbind/" /etc/nsswitch.conf
+        sed -i "s/group:          compat/group:          compat winbind/" /etc/nsswitch.conf
+
+    - name: start samba services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - winbind
+        - smbd
+        - nmbd
+
+- name: create file to prohibit reprovisioning
+  file:
+    path: /.printserver-provisioned
+    state: touch
+  when: not provision_file.stat.exists

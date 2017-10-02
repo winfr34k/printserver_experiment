@@ -1,0 +1,4 @@
+dc_domain: "{{ domain | default('ad.example.com') }}"
+workgroup: "{{ custom_workgroup | default('EXAMPLE') }}"
+admin_password: "{{ custom_admin_password | default('Test1234') }}"
+dc_ip_address: "{{ custom_dc_ip_address | default('192.168.0.253') }}"

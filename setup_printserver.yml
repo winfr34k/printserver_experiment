@@ -1,0 +1,9 @@
+---
+- hosts: cups_printserver
+  pre_tasks:
+    - name: configure resolv.conf to use AD DC instead of local net
+      template:
+        src: resolv.conf.j2
+        dest: /etc/resolv.conf
+  roles:
+    - printserver

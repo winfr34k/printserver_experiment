@@ -1,0 +1,9 @@
+---
+- name: reload samba
+  service:
+    name: "{{ item }}"
+    state: reloaded
+  with_items:
+    - winbind
+    - smbd
+    - nmbd

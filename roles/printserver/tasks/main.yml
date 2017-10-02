@@ -1,0 +1,4 @@
+---
+- import_tasks: 'install_cups.yml'
+- import_tasks: 'install_samba.yml'
+- import_tasks: 'verify_installation.yml'

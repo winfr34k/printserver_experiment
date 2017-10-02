@@ -1,0 +1,14 @@
+---
+- name: install cups
+  apt:
+    name: cups
+    state: latest
+
+- name: enable cups interface from the outside
+  shell: cupsctl --remote-admin
+
+- name: restart cups
+  service:
+    name: cups
+    state: restarted
+
