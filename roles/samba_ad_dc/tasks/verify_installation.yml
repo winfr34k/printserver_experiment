@@ -7,6 +7,11 @@
     - krb5-user
     - smbclient
 
+- name: replacing resolv.conf with version to support the domain
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+
 - name: verifying file server integrity I - checking all required shares exist with both local and 'global' connections
   shell: smbclient -L "{{ item }}" -U% 2>/dev/null | egrep 'netlogon|sysvol|IPC' | awk '{print $1}' | tr '\n' ',' | grep -q 'netlogon,sysvol,IPC$,'
   with_items:
