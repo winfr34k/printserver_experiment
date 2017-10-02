@@ -57,7 +57,7 @@ apt-key adv --keyserver "${URL_KEYSERVER}" --recv-keys "${KEY_ANSIBLE}"
 # Install Ansible
 apt -y update
 apt -y dist-upgrade
-apt -y install git python ansible openssh-server rsync python-dnspython ntfs-3g cowsay python-expect
+apt -y install git python ansible openssh-server rsync python-dnspython ntfs-3g cowsay python-pexpect
 echo "Done."
 echo
 
