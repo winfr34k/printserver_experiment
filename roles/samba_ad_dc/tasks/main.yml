@@ -1,0 +1,5 @@
+---
+- import_tasks: 'configure_dns.yml'
+- import_tasks: 'configure_samba.yml'
+- import_tasks: 'verify_installation.yml'
+- import_tasks: 'post_installation_settings.yml'

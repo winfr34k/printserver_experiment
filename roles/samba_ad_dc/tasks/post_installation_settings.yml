@@ -1,0 +1,6 @@
+---
+- name: enable users of administrative groups to set ACLs on Samba based shares
+  expect:
+    command: net rpc rights grant "{{ workgroup }}\Domain Admins" SeDiskOperatorPrivilege -U "{{ workgroup }}\Administrator"
+    responses:
+      '(?i).*password.*': "{{ initial_admin_password }}"

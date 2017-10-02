@@ -1,0 +1,39 @@
+options {
+    directory "/var/cache/bind";
+    auth-nxdomain yes;
+    notify no;
+    empty-zones-enable no;
+
+    listen-on-v6 { any; };
+
+    # Samba TSIG keytab
+    // tkey-gssapi-keytab "/var/lib/samba/private/dns.keytab";
+
+    # IP addresses and network ranges allowed to query the DNS server:
+    allow-query {
+        localhost;
+        ::1;
+        127.0.0.1;
+        {{ subnet }};
+    };
+
+    # IP addresses and network ranges allowed to run recursive queries:
+    # (Zones not served by this DNS server)
+    allow-recursion {
+        localhost;
+        ::1;
+        127.0.0.1;
+        {{ subnet }};
+    };
+
+    forwarders {
+        {{ primary_forwarder }};
+        {{ secondary_forwarder }};
+    };
+
+    //========================================================================
+    // If BIND logs error messages about the root key being expired,
+    // you will need to update your keys.  See https://www.isc.org/bind-keys
+    //========================================================================
+    dnssec-validation auto;
+};

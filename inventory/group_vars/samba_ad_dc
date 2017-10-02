@@ -1,0 +1,9 @@
+netaddress: "{{ custom_netaddress | default('192.168.0.0') }}"
+subnet_bits: "{{ custom_subnet_bits | default('24') }}"
+subnet: "{{ netaddress }}/{{ subnet_bits }}"
+primary_forwarder: "{{ custom_primary_forwarder | default('8.8.8.8') }}"
+secondary_forwarder: "{{ custom_secondary_forwarder | default('8.8.4.4') }}"
+dc_domain: "{{ domain | default('ad.example.com') }}"
+workgroup: "{{ custom_workgroup | default('EXAMPLE') }}"
+dc_fqdn: "{{ inventory_hostname }}.{{ dc_domain }}"
+initial_admin_password: "{{ custom_initial_admin_password | default('Test1234') }}" # This needs to conform to Microsoft's password rules

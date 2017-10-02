@@ -1,0 +1,38 @@
+---
+- name: keep system up to date
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: check if dns is already provisioned
+  stat:
+    path: /.dns-provisioned
+  register: provision_file
+
+- name: provision dns server
+  when: not provision_file.stat.exists
+  block:
+    - name: install bind9
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - bind9
+        - dnsutils
+
+    - name: copy over default configuration
+      template:
+        src: named.conf.options.j2
+        dest: /etc/bind/named.conf.options
+      notify: restart bind9
+
+    - name: activate RFC1918 zones
+      copy:
+        src: named.conf.local
+        dest: /etc/bind/named.conf.local
+      notify: restart bind9
+
+- name: create file to prohibit reprovisioning
+  file:
+    path: /.dns-provisioned
+    state: touch

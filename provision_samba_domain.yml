@@ -1,0 +1,4 @@
+---
+- hosts: samba_ad_dc
+  roles:
+      - samba_ad_dc

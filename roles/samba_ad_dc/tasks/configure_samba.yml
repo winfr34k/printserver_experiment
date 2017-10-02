@@ -1,0 +1,123 @@
+---
+- name: check if samba is already provisioned
+  stat:
+    path: /.samba-ad-dc-provisioned
+  register: provision_file
+
+- name: provision samba server
+  when: not provision_file.stat.exists
+  block:
+    - name: making sure the host resolves itself against its internal IP instead of localhost
+      command: sed -i "s/^127\.0\.1\.1.*/{{ ip_address }}\t{{ inventory_hostname }}.{{ dc_domain }}\t{{ inventory_hostname }}/" /etc/hosts
+
+    - name: install samba
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - ntp
+        - samba
+        - winbind
+
+    - name: stopping and disabling samba services
+      service:
+        name: "{{ item }}"
+        enabled: no
+        state: stopped
+      with_items:
+        - winbind
+        - smbd
+        - nmbd
+
+    - name: find config file path
+      shell: smbd -b | grep 'CONFIGFILE' | cut -d ' ' -f5
+      register: config_file_query
+      changed_when: false
+
+    - name: remove existing samba config file
+      file:
+        path: "{{ config_file_query.stdout }}"
+        state: absent
+      register: is_config_file_removed
+
+    - name: find out where the samba databases are located at
+      shell: smbd -b | egrep 'LOCKDIR|STATEDIR|CACHEDIR|PRIVATE_DIR' | awk '{print $2}' | while read DIR; do find "${DIR}" -type f -iname '*.[tl]db'; done < /dev/stdin
+      register: samba_databases
+      changed_when: false
+
+    - name: remove all existing samba databases
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items: "{{ samba_databases.stdout_lines }}"
+      when: is_config_file_removed.changed
+
+    - name: remove existing Kerberos configuration
+      file:
+        path: /etc/krb5.conf
+        state: absent
+
+    - name: provision samba domain
+      shell: |
+        samba-tool domain provision \
+                    --use-rfc2307 \
+                    --server-role=dc \
+                    --dns-backend=BIND9_DLZ \
+                    --realm={{ dc_domain | quote }} \
+                    --domain={{ workgroup | quote }} \
+                    --adminpass={{ initial_admin_password | quote }}
+      notify: restart samba-ad-dc
+
+    - name: link generated Kerberos config to default location
+      file:
+        src: /var/lib/samba/private/krb5.conf
+        dest: /etc/krb5.conf
+        state: link
+
+    - name: add generated BIND configuration file to named.conf
+      blockinfile:
+        path: /etc/bind/named.conf.local
+        block: |
+          include "/var/lib/samba/private/named.conf";
+        state: present
+
+    - name: add generated TSIG Keytab to the options array for BIND
+      command: sed -i 's/\/\/ tkey/tkey/' /etc/bind/named.conf.options
+      notify: restart bind9
+
+    - name: set correct user rights on TSIG keytab for bind9
+      file:
+        path: /var/lib/samba/private/dns.keytab
+        group: bind
+        mode: g+r
+        state: touch
+
+    - name: check bind9 configs
+      command: named-checkconf
+      changed_when: false
+
+    - name: force restarting bind9
+      service:
+        name: bind9
+        state: restarted
+
+    - name: wait for bind9 to come up
+      pause:
+        seconds: 10
+
+    - name: force restarting samba-ad-dc
+      systemd:
+        name: samba-ad-dc
+        masked: no
+        enabled: yes
+        state: restarted
+
+    - name: wait for samba to come up
+      pause:
+        seconds: 15
+
+- name: create file to prohibit reprovisioning
+  file:
+    path: /.samba-ad-dc-provisioned
+    state: touch
+  when: not provision_file.stat.exists

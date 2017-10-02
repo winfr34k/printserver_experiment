@@ -1,0 +1,61 @@
+---
+- name: install test tools
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - krb5-user
+    - smbclient
+
+- name: verifying file server integrity I - checking all required shares exist with both local and 'global' connections
+  shell: smbclient -L "{{ item }}" -U% 2>/dev/null | egrep 'netlogon|sysvol|IPC' | awk '{print $1}' | tr '\n' ',' | grep -q 'netlogon,sysvol,IPC$,'
+  with_items:
+    - localhost
+    - "{{ dc_fqdn }}"
+  changed_when: false
+
+- name: verifying file server integrity II - trying to get a listing of the NETLOGON share with the admin account
+  shell: smbclient "//{{ item }}/netlogon" -UAdministrator -c 'ls' "{{ initial_admin_password }}" 2>/dev/null | tail -n 1 | grep -q "blocks of size"
+  with_items:
+    - localhost
+    - "{{ dc_fqdn }}"
+  changed_when: false
+
+- name: verifying correct nsupdate/DNS behaviour for the domain I - trying to get the SRV record for the _ldap._tcp.* address
+  shell: host -t SRV "_ldap._tcp.{{ dc_domain }}." | grep -q "_ldap._tcp.{{ dc_domain }} has SRV record 0 100 389 {{ dc_fqdn }}."
+  changed_when: false
+
+- name: verifying correct nsupdate/DNS behaviour for the domain II - trying to get the SRV record for the _kerberos._udp.* address
+  shell: host -t SRV "_kerberos._udp.{{ dc_domain }}." | grep -q "_kerberos._udp.{{ dc_domain }} has SRV record 0 100 88 {{ dc_fqdn }}."
+  changed_when: false
+
+- name: verifying correct nsupdate/DNS behaviour for the domain III - trying to get the A record for the domain
+  shell: host -t A "{{ dc_domain }}." | grep -q "{{ dc_domain }} has address {{ ip_address }}"
+  changed_when: false
+
+- name: verifying correct nsupdate/DNS behaviour for the domain IV - trying to get the A record for the domain controller
+  shell: host -t A "{{ dc_fqdn }}." | grep -q "{{ dc_fqdn }} has address {{ ip_address }}"
+  changed_when: false
+
+# grep returns 1 if the string is empty, no matter the search term ;)
+- name: verify the forwarders in the DNS work
+  shell: dig A google.com @"{{ item }}" +short | grep ''
+  with_items:
+    - localhost
+    - ::1
+    - 127.0.0.1
+    - "{{ inventory_hostname }}"
+    - "{{ dc_fqdn }}"
+  changed_when: false
+
+- name: verifying correct Kerberos behaviour I - trying to obtain a ticket
+  shell: echo "{{ initial_admin_password }}" | kinit Administrator
+  changed_when: false
+
+- name: verifying correct Kerberos behaviour II - verifying the obtained ticket
+  shell: klist -l | tail -n +3 | awk '{print $1}' | grep -q "Administrator@"
+  changed_when: false
+
+- name: summary
+  debug:
+    msg: "Everything looks OK."
