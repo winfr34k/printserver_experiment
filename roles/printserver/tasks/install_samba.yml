@@ -79,6 +79,7 @@
         user: Administrator
         group: "Domain Admins"
         mode: 2775
+        state: directory
 
     - name: make sure the permissions are set correctly using chmod
       command: chmod 2775 /var/lib/samba/printers
