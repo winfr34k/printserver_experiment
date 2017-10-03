@@ -4,8 +4,10 @@
     name: cups
     state: latest
 
-- name: enable cups interface from the outside
-  shell: cupsctl --remote-admin
+- name: enable cups interface from the outside by deploying default config
+  copy:
+    src: cupsd.conf
+    dest: /etc/cups/cupsd.conf
 
 - name: restart cups
   service:

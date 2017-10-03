@@ -73,18 +73,6 @@
         sed -i "s/passwd:         compat/passwd:         compat winbind/" /etc/nsswitch.conf
         sed -i "s/group:          compat/group:          compat winbind/" /etc/nsswitch.conf
 
-    - name: make sure printer share is available
-      file:
-        path: /var/lib/samba/printers
-        user: Administrator
-        group: "Domain Admins"
-        mode: 2775
-        recurse: yes
-        state: directory
-
-    - name: make sure the permissions are set correctly using chmod
-      command: chmod -R 2775 /var/lib/samba/printers
-
     - name: start samba services
       service:
         name: "{{ item }}"

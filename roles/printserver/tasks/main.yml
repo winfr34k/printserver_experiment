@@ -1,4 +1,5 @@
 ---
 - import_tasks: 'install_cups.yml'
 - import_tasks: 'install_samba.yml'
+- import_tasks: 'setup_print_share.yml'
 - import_tasks: 'verify_installation.yml'

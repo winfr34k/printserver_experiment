@@ -1,0 +1,18 @@
+---
+- name: make sure printer share is available
+  file:
+    path: /var/lib/samba/printers
+    group: "Domain Admins"
+    mode: 2775
+    recurse: yes
+    state: directory
+
+- name: check if permissions are set correctly
+  shell: ls -la /var/lib/samba/printers | tail -n +2 | head -n 1 | awk '{print $1}' | grep -q 'drwsrwsr-x'
+  register: driver_permissions
+  ignore_errors: true
+  changed_when: false
+
+- name: make sure the permissions are set correctly using chmod
+  command: chmod -R 2775 /var/lib/samba/printers
+  when: driver_permissions.rc != 0

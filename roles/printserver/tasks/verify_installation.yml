@@ -4,7 +4,7 @@
   changed_when: false
 
 - name: verifying all expected users are listed
-  shell: wbinfo -u | tr '\n', ',' | grep -q 'administrator,dns-dc,krbtgt,guest,'
+  shell: wbinfo -u | egrep 'administrator|dns-dc|krbtgt|guest' | tr '\n', ',' | grep -q 'administrator,dns-dc,krbtgt,guest,'
   changed_when: false
 
 - name: verifying the fileserver sees the Administrator account
